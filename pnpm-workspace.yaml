@@ -1,2 +1,2 @@
 allowBuilds:
-  'dsh-swarm-orchestrator@git+https://github.com/jiganomegsdfdf/dsh-swarm-orchestrator.git': true
+  dsh-swarm-orchestrator: true
