@@ -2705,10 +2705,33 @@ export class SwarmService extends Service {
    */
   private spawnDeps(): SpawnDeps {
     return {
-      start: (request) => {
-        const subagents = this.ctx.get('subagents') as { start(provider: string, request: unknown): unknown } | undefined
-        if (subagents === undefined) throw new Error('subagents service unavailable in this host (spawn provider not mounted?)')
-        return subagents.start('spawn', request as never) as never
+      start: async (request) => {
+        const subagents = this.ctx.get('subagents')
+        if (subagents === undefined) {
+          throw new Error('subagents service unavailable in this host (spawn provider not mounted?)')
+        }
+  
+        const activation = await subagents.startActivation({
+          provider: 'spawn',
+          label: 'swarm-spawn',
+          delivery: 'caller',
+          signal: new AbortController().signal,
+          request: {
+            parent: request.parent,
+            prompt: request.prompt,
+            maxDepth: request.maxDepth,
+          },
+        })
+  
+        try {
+          const result = await activation.result
+          if (result.stopReason !== 'completed') {
+            throw new Error(`Spawn child did not complete: ${result.stopReason}`)
+          }
+          return result
+        } finally {
+          await activation.dispose()
+        }
       },
     }
   }
